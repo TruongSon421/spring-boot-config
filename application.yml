@@ -1,0 +1,70 @@
+# Default configuration for all services
+spring:
+  application:
+    name: default
+  config:
+    import: configserver:http://config-server:8888
+  cloud:
+    kubernetes:
+      discovery:
+        enabled: true
+        all-namespaces: false
+        namespace: ecommerce
+    discovery:
+      enabled: false
+
+# Disable Eureka for all services
+eureka:
+  client:
+    enabled: false
+
+# Default service discovery URLs (can be overridden in specific profiles)
+services:
+  user-service:
+    url: http://user-service:8090
+  product-service:
+    url: http://product-service:8080
+  order-service:
+    url: http://order-service:8080
+  cart-service:
+    url: http://cart-service:8080
+  inventory-service:
+    url: http://inventory-service:8080
+  payment-service:
+    url: http://payment-service:8080
+  
+
+
+
+# Default Kafka configuration
+kafka:
+  bootstrap-servers: ${kafka.bootstrap.servers:kafka-service:9092}
+
+# Default Elasticsearch configuration
+elasticsearch:
+  host: ${elasticsearch.host:elasticsearch-service}
+  port: ${elasticsearch.port:9200}
+
+# Management endpoints for health checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  health:
+    readiness-state:
+      enabled: true
+    liveness-state:
+      enabled: true
+
+# Logging configuration
+logging:
+  level:
+    com.netflix.eureka: OFF
+    com.netflix.discovery: OFF
+    org.springframework.cloud.kubernetes: DEBUG

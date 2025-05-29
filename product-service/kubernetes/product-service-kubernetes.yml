@@ -1,0 +1,69 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: product-service
+  profiles:
+    active: kubernetes
+  config:
+    import: configserver:http://config-server.ecommerce.svc.cluster.local:8888
+  data:
+    mongodb:
+      database: products
+      authentication-database: admin
+      username: ${mongodb.username:admin}
+      password: ${mongodb.password} # Fetched from Kubernetes Secret
+      host: ${mongodb.host:mongodb-service.ecommerce.svc.cluster.local}
+      port: ${mongodb.port:27017}
+  cloud:
+    kubernetes:
+      discovery:
+        enabled: true
+        all-namespaces: false
+        namespace: ecommerce
+    discovery:
+      enabled: false
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 5000
+            readTimeout: 5000
+
+# Disable Eureka
+eureka:
+  client:
+    enabled: false
+
+# Service URLs using Kubernetes DNS
+inventory-service:
+  url: http://inventory-service.ecommerce.svc.cluster.local:8100
+
+# Management endpoints for health checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,refresh
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+    refresh:
+      enabled: true
+  health:
+    readiness-state:
+      enabled: true
+    liveness-state:
+      enabled: true
+
+# Logging configuration
+logging:
+  level:
+    com.eazybytes: DEBUG
+    org.springframework.security: DEBUG
+    com.netflix.eureka: OFF
+    com.netflix.discovery: OFF
+    org.springframework.cloud.kubernetes: DEBUG

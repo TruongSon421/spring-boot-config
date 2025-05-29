@@ -1,0 +1,69 @@
+# Configuration for all services in kubernetes profile
+spring:
+  profiles:
+    active: kubernetes
+  cloud:
+    kubernetes:
+      discovery:
+        enabled: true
+        all-namespaces: false
+        namespace: ecommerce
+      config:
+        enabled: false # Disable Kubernetes ConfigMap since we use Config Server
+      secrets:
+        enabled: true
+        namespace: ecommerce
+        sources:
+          - name: app-secrets
+
+# Service-specific overrides (if needed)
+services:
+  user-service:
+    url: http://user-service:8090
+  product-service:
+    url: http://product-service:8080
+  order-service:
+    url: http://order-service:8080
+  cart-service:
+    url: http://cart-service:8080
+  inventory-service:
+    url: http://inventory-service:8080
+  payment-service:
+    url: http://payment-service:8080
+  
+
+
+# Kafka configuration
+kafka:
+  bootstrap-servers: ${kafka.bootstrap.servers:kafka-service:9092}
+
+# Elasticsearch configuration
+elasticsearch:
+  host: ${elasticsearch.host:elasticsearch-service}
+  port: ${elasticsearch.port:9200}
+
+# Management endpoints for kubernetes
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,refresh
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+    refresh:
+      enabled: true
+  health:
+    readiness-state:
+      enabled: true
+    liveness-state:
+      enabled: true
+
+# Logging configuration for kubernetes
+logging:
+  level:
+    com.netflix.eureka: OFF
+    com.netflix.discovery: OFF
+    org.springframework.cloud.kubernetes: DEBUG

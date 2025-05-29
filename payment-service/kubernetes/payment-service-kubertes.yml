@@ -1,0 +1,109 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: payment-service
+  profiles:
+    active: kubernetes
+  config:
+    import: configserver:http://config-server.ecommerce.svc.cluster.local:8888
+  datasource:
+    url: jdbc:mysql://mysql-service.ecommerce.svc.cluster.local:3306/ecommerce_payment?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+    username: ${mysql.username:tiendoan}
+    password: ${mysql.password} # Fetched from Kubernetes Secret
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+  kafka:
+    bootstrap-servers: kafka-service.ecommerce.svc.cluster.local:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: payment-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.eazybytes.event.model.ProcessPaymentRequest
+        spring.json.type.mapping: 
+          process-payment-request:com.eazybytes.event.model.ProcessPaymentRequest,
+          payment-succeeded:com.eazybytes.event.model.PaymentSucceededEvent,
+          payment-failed:com.eazybytes.event.model.PaymentFailedEvent
+  cloud:
+    kubernetes:
+      discovery:
+        enabled: true
+        all-namespaces: false
+        namespace: ecommerce
+    discovery:
+      enabled: false
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 5000
+            readTimeout: 5000
+
+# Disable Eureka
+eureka:
+  client:
+    enabled: false
+
+kafka:
+  topics:
+    payment:
+      process: process-payment-request
+      succeeded: payment-succeeded
+      failed: payment-failed
+
+vnpay:
+  tmnCode: ${vnpay.tmnCode:ZIRF5U94}
+  hashSecret: ${vnpay.hashSecret} # Fetched from Kubernetes Secret
+  url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+  ipnUrl: ${vnpay.ipnUrl} # Configure via environment variable or Ingress
+  returnUrl: ${vnpay.returnUrl} # Configure via environment variable or Ingress
+  frontendReturnUrlBase: ${vnpay.frontendReturnUrlBase} # Configure via environment variable
+  version: 2.1.0
+  command: pay
+  orderType: other
+
+# Management endpoints for health checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,refresh
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+    refresh:
+      enabled: true
+  health:
+    readiness-state:
+      enabled: true
+    liveness-state:
+      enabled: true
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.eazybytes: INFO
+    com.eazybytes.service.VNPayServiceImpl: INFO
+    org.springframework.kafka: INFO
+    com.netflix.eureka: OFF
+    com.netflix.discovery: OFF
+    org.springframework.cloud.kubernetes: DEBUG

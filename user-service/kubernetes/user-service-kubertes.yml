@@ -1,0 +1,55 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: user-service
+  profiles:
+    active: kubernetes
+  config:
+    import: configserver:http://config-server.ecommerce.svc.cluster.local:8888
+  cloud:
+    kubernetes:
+      discovery:
+        enabled: true
+        all-namespaces: false
+        namespace: ecommerce
+    discovery:
+      enabled: false
+
+# Disable Eureka
+eureka:
+  client:
+    enabled: false
+
+# JWT configuration
+jwt:
+  secret: ${jwt.secret} # Fetched from Kubernetes Secret
+  expiration: 3600000
+  refresh-expiration: 86400000
+
+# Management endpoints for health checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,refresh
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+    refresh:
+      enabled: true
+  health:
+    readiness-state:
+      enabled: true
+    liveness-state:
+      enabled: true
+
+# Logging configuration
+logging:
+  level:
+    com.netflix.eureka: OFF
+    com.netflix.discovery: OFF
+    org.springframework.cloud.kubernetes: DEBUG
