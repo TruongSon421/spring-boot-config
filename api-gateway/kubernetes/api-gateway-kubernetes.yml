@@ -1,0 +1,135 @@
+server:
+  port: 8070
+
+spring:
+  application:
+    name: api-gateway
+  profiles:
+    active: kubernetes
+  data:
+    redis:
+      host: ${redis.host:redis-service.ecommerce.svc.cluster.local}
+      port: ${redis.port:6379}
+  cloud:
+    config:
+      enabled: false
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*" # Consider restricting in production
+            allowedMethods: "*"
+            allowedHeaders: "*"
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: auth-service
+          uri: http://user-service.ecommerce.svc.cluster.local:8090
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - Authentication
+
+        - id: user-service
+          uri: http://user-service.ecommerce.svc.cluster.local:8090
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - Authentication
+
+        - id: product-service
+          uri: http://product-service.ecommerce.svc.cluster.local:8083
+          predicates:
+            - Path=/api/products/**
+          filters:
+            - Authentication
+
+        - id: order-service
+          uri: http://order-service.ecommerce.svc.cluster.local:8084
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - Authentication
+
+        - id: inventory-service
+          uri: http://inventory-service.ecommerce.svc.cluster.local:8100
+          predicates:
+            - Path=/api/inventory/**
+          filters:
+            - Authentication
+
+        - id: group-variants-service
+          uri: http://inventory-service.ecommerce.svc.cluster.local:8100
+          predicates:
+            - Path=/api/group-variants/**
+          filters:
+            - Authentication
+
+        - id: cart-service
+          uri: http://cart-service.ecommerce.svc.cluster.local:8082
+          predicates:
+            - Path=/api/carts/**
+          filters:
+            - Authentication
+
+        - id: guest-cart-service
+          uri: http://cart-service.ecommerce.svc.cluster.local:8082
+          predicates:
+            - Path=/api/guest-carts/**
+          filters:
+            - Authentication
+
+        - id: payment-service
+          uri: http://payment-service.ecommerce.svc.cluster.local:8085
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - Authentication
+
+        - id: vnpay-payment-service
+          uri: http://payment-service.ecommerce.svc.cluster.local:8085
+          predicates:
+            - Path=/api/v1/payment/vnpay/ipn,/api/v1/payment/vnpay/return
+    kubernetes:
+      discovery:
+        enabled: true
+        all-namespaces: false
+        namespace: ecommerce
+    
+
+
+
+jwt:
+  secret: ${jwt.secret} # Fetched from Kubernetes Secret
+
+# Management endpoints for health checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,refresh
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+    refresh:
+      enabled: true
+  health:
+    readiness-state:
+      enabled: true
+    liveness-state:
+      enabled: true
+
+# Logging configuration
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.eazybytes.filter: DEBUG
+    com.netflix.eureka: OFF
+    com.netflix.discovery: OFF
+    org.springframework.cloud.kubernetes: DEBUG
